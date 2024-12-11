@@ -39,7 +39,7 @@ var (
 	hostName = flag.String("host-name", "", "Host name used by chromoting to build host hash; defaults to os.Hostname()")
 	bindAddr = flag.String("bind", ":15222", "Bind address for health and redirect")
 	target   = flag.String("target", "https://remotedesktop.google.com/access/session/%s", "Redirect target address with %s for host ID")
-	wantUser = flag.String("daemon-user", "root", "Name of the user running daemon")
+	wantUser = flag.Uint("daemon-user", 0, "User ID of the user running daemon")
 
 	jsonPath string
 )
@@ -81,15 +81,6 @@ func health(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	for _, p := range proc {
-		user, err := p.Username()
-		if err != nil {
-			log.Printf("Username of %d: %v", p.Pid, err)
-			continue
-		}
-		if user != *wantUser {
-			continue
-		}
-
 		cmdline, err := p.Cmdline()
 		if err != nil {
 			log.Printf("Cmdline of %d: %v", p.Pid, err)
@@ -99,7 +90,16 @@ func health(w http.ResponseWriter, _ *http.Request) {
 			continue
 		}
 
-		return
+		uids, err := p.Uids()
+		if err != nil {
+			log.Printf("Uids of %d: %v", p.Pid, err)
+			continue
+		}
+		for _, uid := range uids {
+			if uint(uid) == *wantUser {
+				return
+			}
+		}
 	}
 
 	log.Printf("Not found after checking %d processes.", len(proc))
