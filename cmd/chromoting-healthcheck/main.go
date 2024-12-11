@@ -151,6 +151,8 @@ func main() {
 
 	http.HandleFunc("/health", health)
 	http.HandleFunc("/redirect", redirect)
+	// Coder insists adding a slash at the end.
+	http.HandleFunc("/redirect/", redirect)
 	log.Printf("Listening at %s", *bindAddr)
 	log.Fatal(http.ListenAndServe(*bindAddr, handlers.LoggingHandler(os.Stderr, http.DefaultServeMux)))
 }
